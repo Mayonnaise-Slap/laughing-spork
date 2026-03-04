@@ -36,9 +36,9 @@ def init_noiser(
 
         elif mode == "film":
             lum = (
-                0.299 * gradient[..., 0] +
-                0.587 * gradient[..., 1] +
-                0.114 * gradient[..., 2]
+                0.299 * gradient[..., 0]
+                + 0.587 * gradient[..., 1]
+                + 0.114 * gradient[..., 2]
             )[..., None]
 
             grain = strength * noise
@@ -48,7 +48,9 @@ def init_noiser(
             raise ValueError("Unknown noise mode")
 
         return np.clip(out, 0.0, 1.0)
+
     return noiser
+
 
 def _box_blur(x: np.ndarray, k: int = 3) -> np.ndarray:
     """
@@ -61,6 +63,6 @@ def _box_blur(x: np.ndarray, k: int = 3) -> np.ndarray:
 
     for i in range(k):
         for j in range(k):
-            out += x_pad[i:i + x.shape[0], j:j + x.shape[1]]
+            out += x_pad[i : i + x.shape[0], j : j + x.shape[1]]
 
     return out / (k * k)

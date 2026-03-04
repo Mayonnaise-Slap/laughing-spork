@@ -19,22 +19,19 @@ def hls_to_rgb_np(h, l, s):
     def hue_to_rgb(p, q, t):
         t = t % 1.0
         return np.where(
-            t < 1/6, p + (q - p) * 6 * t,
+            t < 1 / 6,
+            p + (q - p) * 6 * t,
             np.where(
-                t < 1/2, q,
-                np.where(
-                    t < 2/3, p + (q - p) * (2/3 - t) * 6,
-                    p
-                )
-            )
+                t < 1 / 2, q, np.where(t < 2 / 3, p + (q - p) * (2 / 3 - t) * 6, p)
+            ),
         )
 
     q = np.where(l < 0.5, l * (1 + s), l + s - l * s)
     p = 2 * l - q
 
-    r = hue_to_rgb(p, q, h + 1/3)
+    r = hue_to_rgb(p, q, h + 1 / 3)
     g = hue_to_rgb(p, q, h)
-    b = hue_to_rgb(p, q, h - 1/3)
+    b = hue_to_rgb(p, q, h - 1 / 3)
 
     return np.stack([r, g, b], axis=-1)
 
@@ -56,29 +53,25 @@ def init_palette(digest: bytes, scheme=SCHEME_ANALOGOUS):
 
         if scheme == SCHEME_ANALOGOUS:
             step = 0.08
-            offsets = np.linspace(
-                -(n // 2) * step,
-                (n // 2) * step,
-                n
-            )
+            offsets = np.linspace(-(n // 2) * step, (n // 2) * step, n)
 
         elif scheme == SCHEME_COMPLEMENTARY:
             offsets = np.array([0.0, 0.5])
 
         elif scheme == SCHEME_TRIADIC:
-            offsets = np.array([0.0, 1/3, 2/3])
+            offsets = np.array([0.0, 1 / 3, 2 / 3])
 
         else:
             offsets = np.zeros(n)
 
         offsets = offsets[:n]
 
-        hues = (base_h + offsets + jitter[:len(offsets)]) % 1.0
+        hues = (base_h + offsets + jitter[: len(offsets)]) % 1.0
 
         contrast_curve = np.linspace(-0.15, 0.15, len(hues))
         ls = np.clip(base_l + contrast_curve, 0.25, 0.85)
 
-        ss = np.clip(base_s + jitter[:len(hues)], 0.6, 1.0)
+        ss = np.clip(base_s + jitter[: len(hues)], 0.6, 1.0)
 
         rgb = hls_to_rgb_np(hues, ls, ss).astype(np.float32)
 
@@ -109,7 +102,7 @@ def _show_palette(hex_colors):
     plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     seed = random.randint(0, 0xFFFF)
     seed = hashlib.sha256(str(seed).encode()).digest()
 

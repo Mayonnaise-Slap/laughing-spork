@@ -7,5 +7,3 @@ class Color:
 
     def to_array(self) -> np.ndarray:
         return self.rgb
-
-

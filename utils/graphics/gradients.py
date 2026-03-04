@@ -10,13 +10,13 @@ DEFAULT_SIZE_Y = 500
 
 class GradientGraph:
     def __init__(
-            self,
-            palette_function: Callable[[int], List[Color]],
-            decoder: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]],
-            blend_kernel: Callable[[np.ndarray, np.ndarray], np.ndarray],
-            post_process: List[Callable[[np.ndarray], np.ndarray]] = None,
-            size_x: int = DEFAULT_SIZE_X,
-            size_y: int = DEFAULT_SIZE_Y,
+        self,
+        palette_function: Callable[[int], List[Color]],
+        decoder: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]],
+        blend_kernel: Callable[[np.ndarray, np.ndarray], np.ndarray],
+        post_process: List[Callable[[np.ndarray], np.ndarray]] = None,
+        size_x: int = DEFAULT_SIZE_X,
+        size_y: int = DEFAULT_SIZE_Y,
     ):
         self.size_x = size_x
         self.size_y = size_y
@@ -36,7 +36,7 @@ class GradientGraph:
         dx = self.grid_x[..., None] - px
         dy = self.grid_y[..., None] - py
 
-        return np.sqrt(dx ** 2 + dy ** 2)
+        return np.sqrt(dx**2 + dy**2)
 
     def get_gradient(self, latent: np.ndarray) -> np.ndarray:
         positions, scales, logits = self.decoder(latent)
