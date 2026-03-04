@@ -5,7 +5,7 @@ import numpy as np
 
 from utils.graphics.blends import init_white_band_blend_kernel, log_blend_kernel
 from utils.graphics.gradients import GradientGraph, example_decoder
-from utils.graphics.helpers import show_gradient
+from utils.graphics.helpers import show_gradient, save_gradient
 from utils.graphics.palette import init_palette, SCHEME_TRIADIC
 from utils.graphics.post_process import init_noiser
 
@@ -29,7 +29,8 @@ if __name__ == '__main__':
         post_process=post_process,
     )
 
-    latent = np.random.randn(16).astype(np.float32)
-    img = graph.get_gradient(latent)
+    for i in range(5):  # generate samples
+        latent = np.random.randn(16).astype(np.float32)
+        img = graph.get_gradient(latent)
 
-    show_gradient(img)
+        save_gradient(img, f"./samples/sample_{i}.png")
