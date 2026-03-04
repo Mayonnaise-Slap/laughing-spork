@@ -1,44 +1,96 @@
-import colorsys
 import hashlib
 import random
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from utils.graphics.color import Color
-
 
 SCHEME_ANALOGOUS = "analogous"
 SCHEME_COMPLEMENTARY = "complementary"
 SCHEME_TRIADIC = "triadic"
 
-def generate_palette(digest: bytes, scheme="analogous", n=5):
-    h = int.from_bytes(digest[0:2], "big") / 65535
 
-    s = digest[2] / 255
-    l = digest[3] / 255
+def hls_to_rgb_np(h, l, s):
+    h = np.asarray(h)
+    l = np.asarray(l)
+    s = np.asarray(s)
 
-    # Constrain to usable design ranges
-    s = 0.45 + s * 0.4
-    l = 0.35 + l * 0.3
+    def hue_to_rgb(p, q, t):
+        t = t % 1.0
+        return np.where(
+            t < 1/6, p + (q - p) * 6 * t,
+            np.where(
+                t < 1/2, q,
+                np.where(
+                    t < 2/3, p + (q - p) * (2/3 - t) * 6,
+                    p
+                )
+            )
+        )
 
-    palette = []
+    q = np.where(l < 0.5, l * (1 + s), l + s - l * s)
+    p = 2 * l - q
 
-    if scheme == "analogous":
-        step = 0.05
-        offsets = [i * step for i in range(-(n // 2), n // 2 + 1)]
-    elif scheme == "complementary":
-        offsets = [0, 0.5]  # 180°
-    elif scheme == "triadic":
-        offsets = [0, 1 / 3, 2 / 3]
-    else:
-        offsets = [0]
+    r = hue_to_rgb(p, q, h + 1/3)
+    g = hue_to_rgb(p, q, h)
+    b = hue_to_rgb(p, q, h - 1/3)
 
-    for offset in offsets:
-        new_h = (h + offset) % 1.0
-        rgb = colorsys.hls_to_rgb(new_h, l, s)
-        palette.append(Color(*rgb))
+    return np.stack([r, g, b], axis=-1)
 
-    return palette[:n]
+
+def init_palette(digest: bytes, scheme=SCHEME_ANALOGOUS):
+    digest = np.frombuffer(digest, dtype=np.uint8)
+
+    base_h = int.from_bytes(digest[0:2].tobytes(), "big") / 65535.0
+
+    s_seed = digest[2] / 255.0
+    base_s = 0.65 + s_seed * 0.3
+
+    l_seed = digest[3] / 255.0
+    base_l = 0.35 + l_seed * 0.4
+
+    jitter = (digest[4:12].astype(np.float32) / 255.0 - 0.5) * 0.08
+
+    def generate_palette(n=5, as_color_objects=False):
+
+        if scheme == SCHEME_ANALOGOUS:
+            step = 0.08
+            offsets = np.linspace(
+                -(n // 2) * step,
+                (n // 2) * step,
+                n
+            )
+
+        elif scheme == SCHEME_COMPLEMENTARY:
+            offsets = np.array([0.0, 0.5])
+
+        elif scheme == SCHEME_TRIADIC:
+            offsets = np.array([0.0, 1/3, 2/3])
+
+        else:
+            offsets = np.zeros(n)
+
+        offsets = offsets[:n]
+
+        hues = (base_h + offsets + jitter[:len(offsets)]) % 1.0
+
+        contrast_curve = np.linspace(-0.15, 0.15, len(hues))
+        ls = np.clip(base_l + contrast_curve, 0.25, 0.85)
+
+        ss = np.clip(base_s + jitter[:len(hues)], 0.6, 1.0)
+
+        rgb = hls_to_rgb_np(hues, ls, ss).astype(np.float32)
+
+        while rgb.shape[0] != n:
+            rgb = np.append(rgb, rgb, axis=0)[:n]
+
+        if as_color_objects:
+            return [Color(*c) for c in rgb]
+
+        return rgb
+
+    return generate_palette
 
 
 def _show_palette(hex_colors):
@@ -61,6 +113,6 @@ if __name__ == '__main__':
     seed = random.randint(0, 0xFFFF)
     seed = hashlib.sha256(str(seed).encode()).digest()
 
-    palette = generate_palette(seed, scheme="analogous", n=5)
+    palette = init_palette(seed, scheme="analogous")()
     print(palette)
     _show_palette(palette)

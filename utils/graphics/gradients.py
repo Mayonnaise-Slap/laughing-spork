@@ -11,16 +11,18 @@ DEFAULT_SIZE_Y = 500
 class GradientGraph:
     def __init__(
             self,
-            palette: List[Color],
+            palette_function: Callable[[int], List[Color]],
             decoder: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]],
             blend_kernel: Callable[[np.ndarray, np.ndarray], np.ndarray],
+            post_process: List[Callable[[np.ndarray], np.ndarray]] = None,
             size_x: int = DEFAULT_SIZE_X,
             size_y: int = DEFAULT_SIZE_Y,
     ):
         self.size_x = size_x
         self.size_y = size_y
 
-        self.palette = np.stack([c.to_array() for c in palette], axis=0)
+        self.palette_function = palette_function
+        self.post_process = post_process
 
         self.decoder = decoder
         self.blend_kernel = blend_kernel
@@ -39,7 +41,10 @@ class GradientGraph:
     def get_gradient(self, latent: np.ndarray) -> np.ndarray:
         positions, scales, logits = self.decoder(latent)
 
-        if positions.shape[0] != self.palette.shape[0]:
+        palette = self.palette_function(positions.shape[0])
+        palette = np.asarray(palette, dtype=np.float32)
+
+        if positions.shape[0] != len(palette):
             raise ValueError("Number of nodes must match palette length.")
 
         dist = self._compute_distances(positions)
@@ -48,7 +53,9 @@ class GradientGraph:
 
         weights = softmax(responses + logits, axis=-1)
 
-        _gradient = np.einsum("hwn,nc->hwc", weights, self.palette)
+        _gradient = np.einsum("hwn,nc->hwc", weights, palette)
+        for post_process in self.post_process:
+            _gradient = post_process(_gradient)
 
         return np.clip(_gradient, 0.0, 1.0)
 
