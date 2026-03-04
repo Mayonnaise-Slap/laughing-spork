@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt
 from utils.graphics.color import Color
 
 
+SCHEME_ANALOGOUS = "analogous"
+SCHEME_COMPLEMENTARY = "complementary"
+SCHEME_TRIADIC = "triadic"
+
 def generate_palette(digest: bytes, scheme="analogous", n=5):
     h = int.from_bytes(digest[0:2], "big") / 65535
 

@@ -1,103 +1,64 @@
-import hashlib
-import math
-import random
+from typing import Callable, List, Tuple
 
-from PIL import Image
+from utils.graphics.blends import *
+from utils.graphics.color import Color
+from utils.graphics.helpers import create_meshgrid, softmax
 
-from utils.graphics.blends import blend_colors, linear_blend_factor, inverse_linear_blend_factor, softmax_blend_factor, \
-    log_sigmoid_blend_factor
-from utils.graphics.palette import generate_palette
+DEFAULT_SIZE_X = 500
+DEFAULT_SIZE_Y = 500
 
-
-class GradientNode:
-    def __init__(self, x: int, y: int, max_x: int, max_y: int):
-        if x > max_x:
-            raise ValueError("x is too big")
-        if y > max_y:
-            raise ValueError("y is too big")
-
-        self.x = x
-        self.y = y
-        self.max_x = max_x
-        self.max_y = max_y
-
-    @property
-    def absolute(self) -> (int, int):
-        return self.x, self.y
-
-    @property
-    def relative(self) -> (float, float):
-        return self.x / self.max_x, self.y / self.max_y
-
-    def distance_relative(self, x: float, y: float) -> float:
-        x_node = self.x / self.max_x
-        y_node = self.y / self.max_y
-        return math.sqrt((x - x_node) ** 2 + (y - y_node) ** 2)
 
 class GradientGraph:
-    min_gradient_nodes = 4
-    max_gradient_nodes = 8
-    gradient_x_dim = 512
-    gradient_y_dim = 512
-    nodes = list
+    def __init__(
+            self,
+            palette: List[Color],
+            decoder: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]],
+            blend_kernel: Callable[[np.ndarray, np.ndarray], np.ndarray],
+            size_x: int = DEFAULT_SIZE_X,
+            size_y: int = DEFAULT_SIZE_Y,
+    ):
+        self.size_x = size_x
+        self.size_y = size_y
 
-    def __init__(self, seed, scheme="analogous", blend_factor=linear_blend_factor):
-        self.seed = hashlib.sha256(str(seed).encode()).digest()
-        self.blend = blend_factor
+        self.palette = np.stack([c.to_array() for c in palette], axis=0)
 
+        self.decoder = decoder
+        self.blend_kernel = blend_kernel
 
-        self.n_nodes = random.randint(self.min_gradient_nodes, self.max_gradient_nodes)
-        self.palette = generate_palette(self.seed, scheme, n=self.n_nodes)
+        self.grid_x, self.grid_y = create_meshgrid(size_x, size_y)
 
-        self.nodes = [
-            GradientNode(
-                random.randint(0, self.gradient_x_dim),
-                random.randint(0, self.gradient_y_dim),
-                self.gradient_x_dim, self.gradient_y_dim,
-            ) for _ in range(self.n_nodes)
-        ]
+    def _compute_distances(self, positions: np.ndarray) -> np.ndarray:
+        px = positions[:, 0]
+        py = positions[:, 1]
 
+        dx = self.grid_x[..., None] - px
+        dy = self.grid_y[..., None] - py
 
-    def get_gradient(self):
-        canvas = []
-        for j in range(self.gradient_y_dim):
-            canvas.append([])
-            for i in range(self.gradient_x_dim):
-                i_norm = i / self.gradient_x_dim
-                j_norm = j / self.gradient_y_dim
-                factors = self.blend(i_norm, j_norm, *self.nodes)
-                color = blend_colors(factors, self.palette)
+        return np.sqrt(dx ** 2 + dy ** 2)
 
-                canvas[j].append(color)
-        return canvas
+    def get_gradient(self, latent: np.ndarray) -> np.ndarray:
+        positions, scales, logits = self.decoder(latent)
 
+        if positions.shape[0] != self.palette.shape[0]:
+            raise ValueError("Number of nodes must match palette length.")
 
-def _draw_gradient(grad):
-    if not grad or not grad[0]:
-        raise ValueError("Empty gradient")
+        dist = self._compute_distances(positions)
 
-    height = len(grad)
-    width = len(grad[0])
+        responses = self.blend_kernel(dist, scales)
 
-    image = Image.new("RGB", (width, height))
-    pixels = image.load()
+        weights = softmax(responses + logits, axis=-1)
 
-    for y in range(height):
-        for x in range(width):
-            hex_color = grad[y][x].rgb()
-            pixels[x, y] = hex_color
+        _gradient = np.einsum("hwn,nc->hwc", weights, self.palette)
 
-    image.show()
+        return np.clip(_gradient, 0.0, 1.0)
 
 
-if __name__ == '__main__':
-    # seed = random.randint(0, 0xFFFFFFFF)
-    seed = 4259820596
-    # gradient = GradientGraph(seed=seed, scheme="analogous", blend_factor=linear_blend_factor)
-    # _draw_gradient(gradient.get_gradient())
-    # gradient = GradientGraph(seed=seed, scheme="analogous", blend_factor=inverse_linear_blend_factor)
-    # _draw_gradient(gradient.get_gradient())
-    # gradient = GradientGraph(seed=seed, scheme="analogous", blend_factor=softmax_blend_factor)
-    # _draw_gradient(gradient.get_gradient())
-    gradient = GradientGraph(seed=seed, scheme="analogous", blend_factor=log_sigmoid_blend_factor)
-    _draw_gradient(gradient.get_gradient())
+def example_decoder(z: np.ndarray):
+    N = 5
+
+    # Example projection (replace with real NN output)
+    positions = np.random.rand(N, 2).astype(np.float32)
+    scales = np.random.uniform(0.1, 0.5, size=N).astype(np.float32)
+    logits = np.random.randn(N).astype(np.float32)
+
+    return positions, scales, logits
