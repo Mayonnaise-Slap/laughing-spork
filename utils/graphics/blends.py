@@ -20,6 +20,10 @@ def log_blend_kernel(dist: np.ndarray, scale: np.ndarray) -> np.ndarray:
     return np.log(gaussian_blend_kernel(dist, scale))
 
 
+def negative_log_blend_kernel(dist: np.ndarray, scale: np.ndarray) -> np.ndarray:
+    return -np.log(gaussian_blend_kernel(dist, scale) + 0.1)
+
+
 def init_white_band_blend_kernel(
     base_kernel: Callable[[np.ndarray, np.ndarray], np.ndarray],
     white_strength: float = 0.5,
