@@ -19,6 +19,7 @@ def gaussian_blend_kernel(dist: np.ndarray, scale: np.ndarray) -> np.ndarray:
 def log_blend_kernel(dist: np.ndarray, scale: np.ndarray) -> np.ndarray:
     return np.log(gaussian_blend_kernel(dist, scale))
 
+
 def negative_log_blend_kernel(dist: np.ndarray, scale: np.ndarray) -> np.ndarray:
     return -np.log(gaussian_blend_kernel(dist, scale) + 0.1)
 
