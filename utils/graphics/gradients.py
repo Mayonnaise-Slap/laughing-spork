@@ -1,8 +1,9 @@
 from typing import Callable, List, Tuple
 
-from utils.graphics.blends import *
 from utils.graphics.color import Color
 from utils.graphics.helpers import create_meshgrid, softmax
+
+import numpy as np
 
 DEFAULT_SIZE_X = 500
 DEFAULT_SIZE_Y = 500
@@ -63,7 +64,6 @@ class GradientGraph:
 def example_decoder(z: np.ndarray):
     N = 5
 
-    # Example projection (replace with real NN output)
     positions = np.random.rand(N, 2).astype(np.float32)
     scales = np.random.uniform(0.1, 0.5, size=N).astype(np.float32)
     logits = np.random.randn(N).astype(np.float32)

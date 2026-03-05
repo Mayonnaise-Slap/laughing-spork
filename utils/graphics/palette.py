@@ -11,10 +11,10 @@ SCHEME_COMPLEMENTARY = "complementary"
 SCHEME_TRIADIC = "triadic"
 
 
-def hls_to_rgb_np(h, l, s):
-    h = np.asarray(h)
-    l = np.asarray(l)
-    s = np.asarray(s)
+def hls_to_rgb_np(hue, luminance, saturation):
+    hue = np.asarray(hue)
+    luminance = np.asarray(luminance)
+    saturation = np.asarray(saturation)
 
     def hue_to_rgb(p, q, t):
         t = t % 1.0
@@ -26,12 +26,12 @@ def hls_to_rgb_np(h, l, s):
             ),
         )
 
-    q = np.where(l < 0.5, l * (1 + s), l + s - l * s)
-    p = 2 * l - q
+    q = np.where(luminance < 0.5, luminance * (1 + saturation), luminance + saturation - luminance * saturation)
+    p = 2 * luminance - q
 
-    r = hue_to_rgb(p, q, h + 1 / 3)
-    g = hue_to_rgb(p, q, h)
-    b = hue_to_rgb(p, q, h - 1 / 3)
+    r = hue_to_rgb(p, q, hue + 1 / 3)
+    g = hue_to_rgb(p, q, hue)
+    b = hue_to_rgb(p, q, hue - 1 / 3)
 
     return np.stack([r, g, b], axis=-1)
 
