@@ -1,15 +1,15 @@
-import numpy as np
 from typing import Optional, Callable
 
+import numpy as np
 from numpy import ndarray
 
 
 def init_noiser(
-    mode: str = "gaussian",
-    strength: float = 0.02,
-    monochrome: bool = True,
-    smooth: bool = False,
-    seed: Optional[int] = None,
+        mode: str = "gaussian",
+        strength: float = 0.02,
+        monochrome: bool = True,
+        smooth: bool = False,
+        seed: Optional[int] = None,
 ) -> Callable[[ndarray], ndarray]:
     def noiser(gradient: np.ndarray) -> np.ndarray:
         if gradient.ndim != 3 or gradient.shape[-1] != 3:
@@ -36,9 +36,9 @@ def init_noiser(
 
         elif mode == "film":
             lum = (
-                0.299 * gradient[..., 0]
-                + 0.587 * gradient[..., 1]
-                + 0.114 * gradient[..., 2]
+                    0.299 * gradient[..., 0]
+                    + 0.587 * gradient[..., 1]
+                    + 0.114 * gradient[..., 2]
             )[..., None]
 
             grain = strength * noise
@@ -63,6 +63,51 @@ def _box_blur(x: np.ndarray, k: int = 3) -> np.ndarray:
 
     for i in range(k):
         for j in range(k):
-            out += x_pad[i : i + x.shape[0], j : j + x.shape[1]]
+            out += x_pad[i: i + x.shape[0], j: j + x.shape[1]]
 
     return out / (k * k)
+
+
+def init_ordered_dithering(
+        strength: float = 0.02
+) -> Callable[[ndarray], ndarray]:
+    def dithering(gradient: np.ndarray) -> np.ndarray:
+        if gradient.ndim != 3 or gradient.shape[-1] != 3:
+            raise ValueError("gradient must have shape (H, W, 3)")
+
+        H, W, _ = gradient.shape
+
+        # 4x4 Bayer matrix
+        bayer = np.array([
+            [0, 8, 2, 10],
+            [12, 4, 14, 6],
+            [3, 11, 1, 9],
+            [15, 7, 13, 5]
+        ], dtype=np.float32)
+
+        bayer = (bayer + 0.5) / 16.0  # normalize to [0,1]
+
+        # Tile to image size
+        tiled = np.tile(bayer, (H // 4 + 1, W // 4 + 1))[:H, :W]
+
+        tiled = tiled[..., None]  # match channel dimension
+
+        dithered = gradient + (tiled - 0.5) * strength
+
+        return np.clip(dithered, 0.0, 1.0)
+
+    return dithering
+
+
+def init_quantize(
+        levels: int = 8
+) -> Callable[[ndarray], ndarray]:
+    def quantize(gradient: np.ndarray) -> np.ndarray:
+        if levels < 2:
+            raise ValueError("levels must be >= 2")
+
+        q = np.round(gradient * (levels - 1)) / (levels - 1)
+
+        return np.clip(q, 0.0, 1.0)
+
+    return quantize

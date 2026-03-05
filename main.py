@@ -5,12 +5,12 @@ import numpy as np
 
 from utils.graphics.blends import (
     init_white_band_blend_kernel,
-    negative_log_blend_kernel,
+    log_blend_kernel,
 )
 from utils.graphics.gradients import GradientGraph, example_decoder
-from utils.graphics.helpers import save_gradient
+from utils.graphics.helpers import show_gradient
 from utils.graphics.palette import init_palette, SCHEME_TRIADIC
-from utils.graphics.post_process import init_noiser
+from utils.graphics.post_process import init_noiser, init_ordered_dithering, init_quantize
 
 if __name__ == "__main__":
     seed = random.randint(0, 0xFFFFFFFF)
@@ -18,15 +18,17 @@ if __name__ == "__main__":
 
     palette = init_palette(seed, SCHEME_TRIADIC)
 
-    kernel = init_white_band_blend_kernel(negative_log_blend_kernel, white_strength=1)
-    # kernel = init_white_band_blend_kernel(log_blend_kernel, white_strength=1)
+    # kernel = init_white_band_blend_kernel(negative_log_blend_kernel, white_strength=1)
+    kernel = init_white_band_blend_kernel(log_blend_kernel, white_strength=1)
 
     post_process = [
+        init_ordered_dithering(0.05),
         init_noiser(
             mode="film",
             strength=0.02,
             monochrome=True,
-        )
+        ),
+        init_quantize(32),
     ]
     graph = GradientGraph(
         palette_function=palette,
@@ -39,5 +41,5 @@ if __name__ == "__main__":
         latent = np.random.randn(16).astype(np.float32)
         img = graph.get_gradient(latent)
 
-        save_gradient(img, f"./samples/sample_{i}.png")
-        # show_gradient(img)
+        # save_gradient(img, f"./samples/sample_{i}.png")
+        show_gradient(img)
