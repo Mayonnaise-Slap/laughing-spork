@@ -36,7 +36,7 @@ def hls_to_rgb_np(hue, luminance, saturation):
     return np.stack([r, g, b], axis=-1)
 
 
-def init_palette(digest: bytes, scheme=SCHEME_ANALOGOUS):
+def init_palette(digest: bytes, scheme=SCHEME_TRIADIC):
     digest = np.frombuffer(digest, dtype=np.uint8)
 
     base_h = int.from_bytes(digest[0:2].tobytes(), "big") / 65535.0
@@ -86,14 +86,13 @@ def init_palette(digest: bytes, scheme=SCHEME_ANALOGOUS):
     return generate_palette
 
 
-def _show_palette(hex_colors):
-    hex_colors = [str(i) for i in hex_colors]
-    fig, ax = plt.subplots(figsize=(len(hex_colors) * 1.5, 2))
+def _show_palette(rgb_colors):
+    fig, ax = plt.subplots(figsize=(len(rgb_colors) * 1.5, 2))
 
-    for i, color in enumerate(hex_colors):
-        ax.add_patch(plt.Rectangle((i, 0), 1, 1, color=color))
+    for i, rgb in enumerate(rgb_colors):
+        ax.add_patch(plt.Rectangle((i, 0), 1, 1, color=rgb))
 
-    ax.set_xlim(0, len(hex_colors))
+    ax.set_xlim(0, len(rgb_colors))
     ax.set_ylim(0, 1)
     ax.set_xticks([])
     ax.set_yticks([])
@@ -106,6 +105,6 @@ if __name__ == "__main__":
     seed = random.randint(0, 0xFFFF)
     seed = hashlib.sha256(str(seed).encode()).digest()
 
-    palette = init_palette(seed, scheme="analogous")()
+    palette = init_palette(seed)()
     print(palette)
     _show_palette(palette)

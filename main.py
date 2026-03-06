@@ -9,14 +9,14 @@ from utils.graphics.blends import (
 )
 from utils.graphics.gradients import GradientGraph, example_decoder
 from utils.graphics.helpers import show_gradient
-from utils.graphics.palette import init_palette, SCHEME_TRIADIC
+from utils.graphics.palette import init_palette
 from utils.graphics.post_process import init_noiser, init_ordered_dithering, init_quantize
 
 if __name__ == "__main__":
     seed = random.randint(0, 0xFFFFFFFF)
     seed = hashlib.sha256(str(seed).encode()).digest()
 
-    palette = init_palette(seed, SCHEME_TRIADIC)
+    palette = init_palette(seed)
 
     # kernel = init_white_band_blend_kernel(negative_log_blend_kernel, white_strength=1)
     kernel = init_white_band_blend_kernel(log_blend_kernel, white_strength=1)

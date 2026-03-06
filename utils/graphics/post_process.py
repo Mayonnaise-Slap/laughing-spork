@@ -87,7 +87,6 @@ def init_ordered_dithering(
 
         bayer = (bayer + 0.5) / 16.0  # normalize to [0,1]
 
-        # Tile to image size
         tiled = np.tile(bayer, (H // 4 + 1, W // 4 + 1))[:H, :W]
 
         tiled = tiled[..., None]  # match channel dimension
