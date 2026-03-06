@@ -8,9 +8,13 @@ from utils.graphics.blends import (
     log_blend_kernel,
 )
 from utils.graphics.gradients import GradientGraph, example_decoder
-from utils.graphics.helpers import show_gradient
+from utils.graphics.helpers import show_gradient, save_gradient
 from utils.graphics.palette import init_palette
-from utils.graphics.post_process import init_noiser, init_ordered_dithering, init_quantize
+from utils.graphics.post_process import (
+    init_noiser,
+    init_ordered_dithering,
+    init_quantize,
+)
 
 if __name__ == "__main__":
     seed = random.randint(0, 0xFFFFFFFF)
@@ -41,5 +45,5 @@ if __name__ == "__main__":
         latent = np.random.randn(16).astype(np.float32)
         img = graph.get_gradient(latent)
 
-        # save_gradient(img, f"./samples/sample_{i}.png")
+        # save_gradient(img, f"../samples/sample_{i}.png")
         show_gradient(img)

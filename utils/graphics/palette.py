@@ -26,7 +26,11 @@ def hls_to_rgb_np(hue, luminance, saturation):
             ),
         )
 
-    q = np.where(luminance < 0.5, luminance * (1 + saturation), luminance + saturation - luminance * saturation)
+    q = np.where(
+        luminance < 0.5,
+        luminance * (1 + saturation),
+        luminance + saturation - luminance * saturation,
+    )
     p = 2 * luminance - q
 
     r = hue_to_rgb(p, q, hue + 1 / 3)
